@@ -5,6 +5,7 @@ declare(strict_types=1);
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ServerException;
 use React\EventLoop\LoopInterface;
+use StanfordNLP\Parser;
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/functions.php';
@@ -18,6 +19,13 @@ $headers = [
     'Authorization' => 'Bearer ' . getenv('HQ_BEARER_TOKEN'),
     'x-hq-client'   => 'iOS/1.2.4 b59',
 ];
+
+/*predict_answers(
+    build_answers([['text'=>'Peter'], ['text'=>'Judas'],['text'=>'John']]),
+    "In da Vinci’s “Last Supper,” which disciple is depicted holding a weapon?",
+    $client
+);
+die();*/
 
 try {
     $response = $client->get('https://api-quiz.hype.space/shows/now?type=hq&userId=' . getenv('HQ_USER_ID'), ['headers' => $headers]);

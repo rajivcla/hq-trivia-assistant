@@ -35,6 +35,24 @@ function build_answers(array $rawAnswers): array
     return $answers;
 }
 
+
+function removeWords(string $question){
+    $path = dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'stanford-postagger-2017-06-09/';
+    //print PHP_EOL .   $path . 'models/english-left3words-distsim.tagger' . PHP_EOL;
+    $pos = new \StanfordNLP\POSTagger(
+      $path . 'models/english-left3words-distsim.tagger',
+      $path . 'stanford-postagger-3.8.0.jar'
+    );
+    $result = $pos->tag(explode(' ', $question));
+    $str = "";
+    foreach($result[0] as $value){
+        if($value[1] == "NNP" || $value[1] == "NN" || $value[1] == "VBZ" || $value[1] == "JJ" || $value[1] == "VBG")
+            $str .= $value[0] . " ";
+    }
+    
+    return $str;
+}
+
 /**
  * @param string $question
  * @param array  $answers
@@ -45,8 +63,8 @@ function build_answers(array $rawAnswers): array
  */
 function build_queries(string $question, array $answers, bool $includeAnswers = false, bool $change = false): array
 {
-    $queries = [$question];
-
+    
+    $queries = [removeWords($question)];
     if (stripos($question, 'Which of these') !== false && $change === true) {
         $question = str_replace('Which of these', 'what', $question);
         $question = implode(' ', array_map('singularize', (array)str_word_count($question, 1)));
@@ -64,11 +82,11 @@ function build_queries(string $question, array $answers, bool $includeAnswers = 
 
     return array_merge(
         array_map(function ($value) {
-            return 'https://ca.search.yahoo.com/search?ei=UTF-8&nojs=1&p=' . $value;
-        }, array_map('urlencode', $queries)),
+            return 'https://search.yahoo.com/search?ei=UTF-8&nojs=1&p=' . $value;
+        }, array_map('urlencode', $queries))/*,
         array_map(function ($value) {
             return 'https://www.google.ca/search?q=' . $value;
-        }, array_map('urlencode', $queries))
+        }, array_map('urlencode', $queries))*/
     );
 }
 
@@ -94,7 +112,6 @@ function predict_answers(array $answers, string $question, Client $client)
         $question,
         $answers
     );
-
     $promises = (function () use ($queries, $client) {
         foreach ($queries as $username) {
             yield $client->requestAsync('GET', $username);
@@ -166,20 +183,21 @@ function handle_responses(array $responses, array $answers, string $question)
         $filter2 = 'span[class=st]';
 
         if (stripos($response->getHeader('P3P')[0], 'yahoo.com') !== false) {
-            $filter1 = 'p';
+            $filter1 = '#web';
             $filter2 = 'p';
+            //print PHP_EOL . "using Yahoo";
         }
 
         $crawler = new Crawler((string)$response->getBody());
         $crawler = $crawler->filter($filter1);
-
+        //print PHP_EOL . $crawler->html();
         $nodeValues = $crawler->filter($filter2)->each(function (Crawler $node) {
             return $node->text();
         });
 
         foreach ($nodeValues as $val) {
             $words = str_word_count($val, 1);
-
+            
             foreach ($answers as $id => $answer) {
                 $counts[$id] += count(
                     array_intersect($words, str_word_count($answer, 1))

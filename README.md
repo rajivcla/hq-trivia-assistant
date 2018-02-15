@@ -8,7 +8,7 @@ A small bot to help aide you in picking the right answer in the HQ app trivia ga
 ## Install
 
 ``` bash
-$ git clone https://github.com/mikealmond/hq-trivia-assistant .
+$ git clone https://github.com/rajivcla/hq-trivia-assistant .
 $ cd hq-trivia-assistant
 $ composer install
 $ cp .env.dist .env
